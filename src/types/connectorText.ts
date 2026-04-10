@@ -1,0 +1,1 @@
+export type ConnectorTextBlock = { type: 'connector_text'; text: string }; export type ConnectorTextDelta = { type: 'connector_text_delta'; text: string }; export function isConnectorTextBlock(_b: unknown): boolean { return false; }
