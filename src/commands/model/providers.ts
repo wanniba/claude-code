@@ -8,13 +8,6 @@ export type ProviderConfig = {
 
 export const PROVIDERS: ProviderConfig[] = [
   {
-    id: "anthropic",
-    label: "Anthropic (Claude)",
-    baseURL: "",
-    needsKey: false,
-    models: [],
-  },
-  {
     id: "openai",
     label: "OpenAI",
     baseURL: "https://api.openai.com/v1",
