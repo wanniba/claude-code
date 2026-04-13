@@ -1669,11 +1669,12 @@ async function* queryModel(
           ? options.systemPrompt
           : options.systemPrompt?.map((p: { text: string }) => p.text).join("\n");
 
-      // Use messagesForAPI (already normalized for the API) rather than
-      // raw REPL messages — the latter have a different structure (type/message)
-      // and would result in empty content in the OpenAI request.
+      // Convert REPL messages to API format (role/content at top level).
+      // messagesForAPI has {type, message:{role,content}} structure;
+      // addCacheBreakpoints flattens it to {role, content} MessageParam[].
+      const apiMessages = addCacheBreakpoints(messagesForAPI, false);
       const compatMessages = toOpenAIMessages(
-        messagesForAPI as Parameters<typeof toOpenAIMessages>[0],
+        apiMessages as Parameters<typeof toOpenAIMessages>[0],
         systemPrompt,
       );
       const compatTools = tools?.length
