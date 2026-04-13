@@ -1669,8 +1669,11 @@ async function* queryModel(
           ? options.systemPrompt
           : options.systemPrompt?.map((p: { text: string }) => p.text).join("\n");
 
+      // Use messagesForAPI (already normalized for the API) rather than
+      // raw REPL messages — the latter have a different structure (type/message)
+      // and would result in empty content in the OpenAI request.
       const compatMessages = toOpenAIMessages(
-        messages as Parameters<typeof toOpenAIMessages>[0],
+        messagesForAPI as Parameters<typeof toOpenAIMessages>[0],
         systemPrompt,
       );
       const compatTools = tools?.length
