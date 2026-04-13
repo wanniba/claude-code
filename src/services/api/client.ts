@@ -357,7 +357,16 @@ export function applyCustomModelProviderFromConfig(): void {
     const { getGlobalConfig } =
       require("../utils/config.js") as typeof import("../../utils/config.js");
     const cfg = getGlobalConfig().customModelProvider;
-    if (!cfg) return;
+    if (!cfg) {
+      // No provider configured yet — set a placeholder so cr7 can start.
+      // The user should run /model to configure a real provider.
+      process.env.CLAUDE_CODE_USE_OPENAI = "1";
+      process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY ?? "not-configured";
+      process.env.OPENAI_BASE_URL =
+        process.env.OPENAI_BASE_URL ?? "https://dashscope.aliyuncs.com/compatible-mode/v1";
+      process.env.CLAUDE_CODE_MODEL = process.env.CLAUDE_CODE_MODEL ?? "qwen-max";
+      return;
+    }
     if (cfg.provider === "ollama") {
       process.env.CLAUDE_CODE_USE_OLLAMA = "1";
     } else {
