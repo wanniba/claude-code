@@ -2352,6 +2352,10 @@ async function* queryModel(
       // starts a tool, then the non-streaming retry produces the same tool_use
       // and runs it again. See inc-4258.
       const disableFallback =
+        // cr7: never fall back to Anthropic non-streaming for OpenAI-compat providers —
+        // the fallback would send glm-5.1/qwen-max to api.anthropic.com and fail with 404.
+        activeProvider === "openai" ||
+        activeProvider === "ollama" ||
         isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK) ||
         getFeatureValue_CACHED_MAY_BE_STALE(
           "tengu_disable_streaming_to_non_streaming_fallback",
