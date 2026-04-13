@@ -83,7 +83,7 @@ CLAUDE_CODE_MODEL=glm-4-air \
 cr7
 ```
 
-可用模型：`glm-4-air` / `glm-4-flash` / `glm-4-plus` / `glm-4-long`
+可用模型：`glm-4-5`（GLM 5.1，推荐）/ `glm-4-air` / `glm-4-flash` / `glm-4-plus` / `glm-4-long`
 
 ### DeepSeek
 
