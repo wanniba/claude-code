@@ -17,13 +17,23 @@ const STUBS = resolve(ROOT, "src/stubs");
 console.log("Building cr7...");
 
 const result = await Bun.build({
-  entrypoints: [resolve(ROOT, "src/main.tsx")],
+  entrypoints: [resolve(ROOT, "src/entrypoints/cli.tsx")],
   outdir: ROOT,
   naming: "cli.js",
   target: "bun",
   format: "esm",
   minify: false,
   sourcemap: "none",
+  define: {
+    // Substitute MACRO.* constants at build time (these are set by Anthropic's internal build)
+    "MACRO.VERSION": JSON.stringify("2.1.88"),
+    "MACRO.BUILD_TIME": JSON.stringify(new Date().toISOString()),
+    "MACRO.PACKAGE_URL": JSON.stringify("@anthropic-ai/claude-code"),
+    "MACRO.NATIVE_PACKAGE_URL": JSON.stringify("@anthropic-ai/claude-code"),
+    "MACRO.FEEDBACK_CHANNEL": JSON.stringify("https://github.com/anthropics/claude-code/issues"),
+    "MACRO.ISSUES_EXPLAINER": JSON.stringify("https://github.com/anthropics/claude-code/issues"),
+    "MACRO.VERSION_CHANGELOG": JSON.stringify(""),
+  },
   alias: {
     // bun:bundle stub — feature() always returns false
     "bun:bundle": resolve(STUBS, "bun-bundle.ts"),

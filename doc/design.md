@@ -110,12 +110,41 @@ components/  ── React + Ink 渲染终端 UI
 
 ## 关键技术选型
 
-| 决策     | 方案                          | 原因                        |
-| -------- | ----------------------------- | --------------------------- |
-| 终端 UI  | React + Ink                   | 组件化、状态管理成熟        |
-| 打包工具 | Bun bundle                    | 支持 `feature()` 死代码消除 |
-| 类型系统 | TypeScript + Zod              | 运行时校验 + 编译期安全     |
-| 工具协议 | MCP（Model Context Protocol） | 标准化第三方扩展            |
-| 延迟加载 | `require()` 懒加载            | 减少启动时间                |
-| 对话压缩 | autoCompact / snipCompact     | 长会话下控制 token 消耗     |
-| 权限检查 | `canUseTool` + PermissionMode | 防止未授权操作              |
+| 决策     | 方案                          | 原因                                                                                                                 |
+| -------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| 终端 UI  | React + Ink                   | 组件化、状态管理成熟                                                                                                 |
+| 打包工具 | Bun bundle                    | 支持 `feature()` 死代码消除                                                                                          |
+| 类型系统 | TypeScript + Zod              | 运行时校验 + 编译期安全                                                                                              |
+| 工具协议 | MCP（Model Context Protocol） | 标准化第三方扩展                                                                                                     |
+| 延迟加载 | `require()` 懒加载            | 减少启动时间（**注意**：Bun bundler 会将 bundle 内模块的 `require()` 编译为 always-throw IIFE，必须改用静态 import） |
+| 对话压缩 | autoCompact / snipCompact     | 长会话下控制 token 消耗                                                                                              |
+| 权限检查 | `canUseTool` + PermissionMode | 防止未授权操作                                                                                                       |
+
+---
+
+## 踩坑记录
+
+### Bun bundler：内部模块 `require()` 编译为 always-throw
+
+**现象**：`cr7` 在终端无响应，启动后立即退出（exit 0），无任何报错输出。
+
+**根因**：`src/services/api/client.ts` 的 `applyCustomModelProviderFromConfig()` 用 `require("../utils/config.js")` 懒加载 config 模块。Bun 打包时检测到该模块已 bundle 在内，将 `require()` 编译为：
+
+```js
+(() => {
+  throw new Error("Cannot require module ../utils/config.js");
+})();
+```
+
+函数内的 `try/catch {}` 静默吞掉了这个错误，导致：
+
+1. `CLAUDE_CODE_USE_OPENAI` 未被设置 → 默认走 Anthropic 客户端
+2. `hasCompletedOnboarding`/`theme` 未写入 config → 触发 Anthropic onboarding 流程
+
+**修复**：
+
+- 将 `require()` 改为顶层静态 `import { getGlobalConfig, saveGlobalConfig } from "../../utils/config.js"`
+- catch 块中补设默认 env vars（`CLAUDE_CODE_USE_OPENAI=1`、`OPENAI_BASE_URL`、`CLAUDE_CODE_MODEL`）
+- 新增 `applyConfigAfterInit()` 在 `init()`（即 `enableConfigs()` 之后）再次执行 theme/provider 修复
+
+**结论**：Bun bundle 内的模块**不能**用 CommonJS `require()` 引用，必须用静态 import。

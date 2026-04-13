@@ -21,7 +21,7 @@ import {
 
 // eslint-disable-next-line custom-rules/no-top-level-side-effects
 startKeychainPrefetch();
-import { applyCustomModelProviderFromConfig } from "./services/api/client.js";
+import { applyCustomModelProviderFromConfig, applyConfigAfterInit } from "./services/api/client.js";
 // Apply saved custom model provider config before any other imports read env vars
 applyCustomModelProviderFromConfig();
 import { feature } from "bun:bundle";
@@ -1169,6 +1169,10 @@ async function run(): Promise<CommanderCommand> {
     await init();
     profileCheckpoint("preAction_after_init");
 
+    // cr7: apply config-dependent fixes now that enableConfigs() has run
+    // (theme, onboarding flag, and saved custom provider override)
+    applyConfigAfterInit();
+
     // process.title on Windows sets the console title directly; on POSIX,
     // terminal shell integration may mirror the process name to the tab.
     // After init() so settings.json env can also gate this (gh-4765).
@@ -1242,7 +1246,7 @@ async function run(): Promise<CommanderCommand> {
       },
     )
     .addOption(
-      new Option("-d2e, --debug-to-stderr", "Enable debug mode (to stderr)")
+      new Option("--debug-to-stderr", "Enable debug mode (to stderr)")
         .argParser(Boolean)
         .hideHelp(),
     )

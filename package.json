@@ -45,6 +45,7 @@
     "chokidar": "^4.0.0",
     "cli-boxes": "^3.0.0",
     "code-excerpt": "^4.0.0",
+    "commander": "^13.1.0",
     "diff": "^7.0.0",
     "emoji-regex": "^10.0.0",
     "env-paths": "^3.0.0",

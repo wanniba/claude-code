@@ -18,6 +18,7 @@ import { getIsNonInteractiveSession, getSessionId } from "../../bootstrap/state.
 import { getOauthConfig } from "../../constants/oauth.js";
 import { isDebugToStdErr, logForDebugging } from "../../utils/debug.js";
 import { getAWSRegion, getVertexRegionForModel, isEnvTruthy } from "../../utils/envUtils.js";
+import { getGlobalConfig, saveGlobalConfig } from "../../utils/config.js";
 
 /**
  * Environment variables for different client types:
@@ -352,10 +353,6 @@ export function applyCustomModelProviderFromConfig(): void {
     return;
   }
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { getGlobalConfig, saveGlobalConfig } =
-      require("../utils/config.js") as typeof import("../../utils/config.js");
-
     const globalConfig = getGlobalConfig();
 
     // Skip onboarding and API key approval dialogs — cr7 uses its own /model command
@@ -388,7 +385,48 @@ export function applyCustomModelProviderFromConfig(): void {
     process.env.OPENAI_BASE_URL = cfg.baseURL;
     process.env.CLAUDE_CODE_MODEL = cfg.model;
   } catch {
-    // ignore — config not yet readable
+    // Config not yet readable (called before enableConfigs()) — apply safe defaults.
+    // The theme/onboarding fix will run again after enableConfigs() via applyConfigAfterInit().
+    process.env.CLAUDE_CODE_USE_OPENAI = "1";
+    process.env.OPENAI_BASE_URL =
+      process.env.OPENAI_BASE_URL ?? "https://dashscope.aliyuncs.com/compatible-mode/v1";
+    process.env.CLAUDE_CODE_MODEL = process.env.CLAUDE_CODE_MODEL ?? "qwen-max";
+  }
+}
+
+/**
+ * Called after enableConfigs() (in the preAction hook) to apply config-dependent
+ * settings that couldn't run at module load time (before config is readable).
+ * Handles: theme/onboarding fix, and overriding env vars with saved provider config.
+ */
+export function applyConfigAfterInit(): void {
+  try {
+    const globalConfig = getGlobalConfig();
+
+    // Ensure theme and onboarding are set — prevents Anthropic onboarding screen
+    if (!globalConfig.hasCompletedOnboarding || !globalConfig.theme) {
+      saveGlobalConfig((c) => ({
+        ...c,
+        hasCompletedOnboarding: true,
+        theme: c.theme ?? "dark",
+      }));
+    }
+
+    // If a custom provider is saved, override the defaults set in the catch block
+    const cfg = globalConfig.customModelProvider;
+    if (!cfg) return;
+
+    if (cfg.provider === "ollama") {
+      delete process.env.CLAUDE_CODE_USE_OPENAI;
+      process.env.CLAUDE_CODE_USE_OLLAMA = "1";
+    } else {
+      process.env.CLAUDE_CODE_USE_OPENAI = "1";
+    }
+    if (cfg.apiKey) process.env.OPENAI_API_KEY = cfg.apiKey;
+    process.env.OPENAI_BASE_URL = cfg.baseURL;
+    process.env.CLAUDE_CODE_MODEL = cfg.model;
+  } catch {
+    // ignore — should not fail at this point
   }
 }
 

@@ -15,6 +15,9 @@ export const SandboxRuntimeConfigSchema = z.object({}).passthrough();
 
 export class SandboxManager {
   constructor(_config?: unknown) {}
+  static isSupportedPlatform() {
+    return false;
+  }
   async start() {}
   async stop() {}
   isEnabled() {
