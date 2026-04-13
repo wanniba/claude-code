@@ -34,6 +34,9 @@ const result = await Bun.build({
     "@ant/claude-for-chrome-mcp": resolve(STUBS, "@ant/claude-for-chrome-mcp/index.ts"),
     "@ant/computer-use-swift": resolve(STUBS, "@ant/computer-use-swift/index.ts"),
     "@anthropic-ai/mcpb": resolve(STUBS, "@anthropic-ai/mcpb/index.ts"),
+    "@anthropic-ai/sandbox-runtime": resolve(STUBS, "@anthropic-ai/sandbox-runtime/index.ts"),
+    // React 19 compiler runtime stub (React 18 doesn't ship this module)
+    "react/compiler-runtime": resolve(STUBS, "react-compiler-runtime.js"),
     // Path alias used throughout source
     src: resolve(ROOT, "src"),
   },
@@ -111,7 +114,6 @@ const result = await Bun.build({
     "@anthropic-ai/vertex-sdk",
     "@anthropic-ai/foundry-sdk",
     // Private/native packages — never loaded (all feature flags = false)
-    "@anthropic-ai/sandbox-runtime",
     "color-diff-napi",
     "modifiers-napi",
     "sharp",
@@ -139,10 +141,16 @@ if (!result.success) {
 }
 
 // Add shebang to output
+// Use absolute path to bun so the binary works even when ~/.bun/bin is not in PATH
+const bunPath = process.execPath; // absolute path of the bun binary running this script
 const outFile = resolve(ROOT, "cli.js");
 const content = await Bun.file(outFile).text();
 if (!content.startsWith("#!")) {
-  await Bun.write(outFile, `#!/usr/bin/env bun\n${content}`);
+  await Bun.write(outFile, `#!${bunPath}\n${content}`);
+} else {
+  // Replace existing shebang with absolute path
+  const updated = content.replace(/^#!.*\n/, `#!${bunPath}\n`);
+  await Bun.write(outFile, updated);
 }
 
 await execa("chmod", ["+x", outFile]);
