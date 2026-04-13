@@ -180,6 +180,15 @@ export function getRuntimeMainLoopModel(params: {
  * @returns The default model setting to use
  */
 export function getDefaultMainLoopModelSetting(): ModelName | ModelAlias {
+  // cr7: when using OpenAI-compatible or Ollama provider, CLAUDE_CODE_MODEL
+  // holds the actual model (e.g. glm-5.1). The Anthropic model strings don't
+  // have an 'openai' key so getDefaultOpusModel() would return undefined,
+  // causing "undefined[1m]" to be used as model name.
+  const provider = getAPIProvider();
+  if ((provider === "openai" || provider === "ollama") && process.env.CLAUDE_CODE_MODEL) {
+    return process.env.CLAUDE_CODE_MODEL as ModelName;
+  }
+
   // Ants default to defaultModel from flag config, or Opus 1M if not configured
   if (process.env.USER_TYPE === "ant") {
     return getAntModelOverrideConfig()?.defaultModel ?? getDefaultOpusModel() + "[1m]";
