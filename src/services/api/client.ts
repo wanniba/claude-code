@@ -342,6 +342,35 @@ export const CLIENT_REQUEST_ID_HEADER = "x-client-request-id";
  *   OPENAI_API_KEY   — API key (required for OpenAI; can be any string for local)
  *   OPENAI_BASE_URL  — Override base URL (e.g. http://localhost:11434/v1 for Ollama)
  */
+/**
+ * Apply customModelProvider from ~/.claude/settings.json to env vars.
+ * Called once at startup so the rest of the app reads env vars normally.
+ */
+export function applyCustomModelProviderFromConfig(): void {
+  // env var takes precedence over saved config
+  if (process.env.CLAUDE_CODE_USE_OPENAI || process.env.CLAUDE_CODE_USE_OLLAMA) {
+    return;
+  }
+  try {
+    // Lazy import to avoid circular deps at module load time
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { getGlobalConfig } =
+      require("../utils/config.js") as typeof import("../../utils/config.js");
+    const cfg = getGlobalConfig().customModelProvider;
+    if (!cfg) return;
+    if (cfg.provider === "ollama") {
+      process.env.CLAUDE_CODE_USE_OLLAMA = "1";
+    } else {
+      process.env.CLAUDE_CODE_USE_OPENAI = "1";
+    }
+    if (cfg.apiKey) process.env.OPENAI_API_KEY = cfg.apiKey;
+    process.env.OPENAI_BASE_URL = cfg.baseURL;
+    process.env.CLAUDE_CODE_MODEL = cfg.model;
+  } catch {
+    // ignore — config not yet readable
+  }
+}
+
 export function getOpenAIClient() {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { OpenAI } = require("openai") as typeof import("openai");
