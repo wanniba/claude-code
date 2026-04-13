@@ -1660,7 +1660,8 @@ async function* queryModel(
   if (activeProvider === "openai" || activeProvider === "ollama") {
     try {
       queryCheckpoint("query_client_creation_start");
-      const openai = getOpenAIClient();
+      // "client" works for any OpenAI-compatible provider: Zhipu, Qwen, DeepSeek, Ollama…
+      const client = getOpenAIClient();
       queryCheckpoint("query_client_creation_end");
 
       const systemPrompt =
@@ -1668,26 +1669,28 @@ async function* queryModel(
           ? options.systemPrompt
           : options.systemPrompt?.map((p: { text: string }) => p.text).join("\n");
 
-      const openaiMessages = toOpenAIMessages(
+      const compatMessages = toOpenAIMessages(
         messages as Parameters<typeof toOpenAIMessages>[0],
         systemPrompt,
       );
-      const openaiTools = tools?.length
+      const compatTools = tools?.length
         ? toOpenAITools(tools as Parameters<typeof toOpenAITools>[0])
         : undefined;
+      const compatModel = process.env.CLAUDE_CODE_MODEL ?? options.model;
 
       queryCheckpoint("query_api_request_sent");
-      const openaiStream = await openai.beta.chat.completions.stream({
-        model: process.env.CLAUDE_CODE_MODEL ?? options.model,
-        messages: openaiMessages,
-        ...(openaiTools?.length && { tools: openaiTools }),
+      // stream() is on the beta namespace in OpenAI SDK v4
+      const compatStream = await client.beta.chat.completions.stream({
+        model: compatModel,
+        messages: compatMessages,
+        ...(compatTools?.length && { tools: compatTools }),
         stream: true,
       });
       queryCheckpoint("query_response_headers_received");
 
       stream = toAnthropicStream(
-        openaiStream,
-        options.model,
+        compatStream,
+        compatModel,
       ) as unknown as Stream<BetaRawMessageStreamEvent>;
     } catch (err) {
       // Re-throw so query.ts catch block surfaces the error in the REPL.
