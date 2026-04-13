@@ -1669,16 +1669,16 @@ async function* queryModel(
           : options.systemPrompt?.map((p: { text: string }) => p.text).join("\n");
 
       const openaiMessages = toOpenAIMessages(
-        options.messages as Parameters<typeof toOpenAIMessages>[0],
+        messages as Parameters<typeof toOpenAIMessages>[0],
         systemPrompt,
       );
-      const openaiTools = options.tools?.length
-        ? toOpenAITools(options.tools as Parameters<typeof toOpenAITools>[0])
+      const openaiTools = tools?.length
+        ? toOpenAITools(tools as Parameters<typeof toOpenAITools>[0])
         : undefined;
 
       queryCheckpoint("query_api_request_sent");
       const openaiStream = await openai.chat.completions.stream({
-        model: options.model,
+        model: process.env.CLAUDE_CODE_MODEL ?? options.model,
         messages: openaiMessages,
         ...(openaiTools?.length && { tools: openaiTools }),
         stream: true,
