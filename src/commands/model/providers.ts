@@ -38,6 +38,7 @@ export const PROVIDERS: ProviderConfig[] = [
     baseURL: "https://open.bigmodel.cn/api/paas/v4",
     needsKey: true,
     models: [
+      { value: "glm-4-5", label: "GLM-4.5 (GLM 5.1)" },
       { value: "glm-4-air", label: "GLM-4 Air" },
       { value: "glm-4-flash", label: "GLM-4 Flash" },
       { value: "glm-4-plus", label: "GLM-4 Plus" },
