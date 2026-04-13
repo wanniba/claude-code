@@ -55,6 +55,14 @@ export function isNonCustomOpusModel(model: ModelName): boolean {
  * 4. Settings (from user's saved settings)
  */
 export function getUserSpecifiedModelSetting(): ModelSetting | undefined {
+  // cr7: for OpenAI-compatible providers, Anthropic model aliases in settings
+  // (e.g. "sonnet[1m]") resolve to "undefined[1m]" because the model configs
+  // have no 'openai' key. Return CLAUDE_CODE_MODEL directly instead.
+  const provider = getAPIProvider();
+  if ((provider === "openai" || provider === "ollama") && process.env.CLAUDE_CODE_MODEL) {
+    return process.env.CLAUDE_CODE_MODEL as ModelSetting;
+  }
+
   let specifiedModel: ModelSetting | undefined;
 
   const modelOverride = getMainLoopModelOverride();
