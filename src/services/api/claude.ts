@@ -1690,8 +1690,9 @@ async function* queryModel(
         options.model,
       ) as unknown as Stream<BetaRawMessageStreamEvent>;
     } catch (err) {
-      logError(err instanceof Error ? err : new Error(String(err)));
-      return;
+      // Re-throw so query.ts catch block surfaces the error in the REPL.
+      // Previously this silently returned, causing "no reply".
+      throw err instanceof Error ? err : new Error(String(err));
     }
   }
 
