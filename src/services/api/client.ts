@@ -352,19 +352,30 @@ export function applyCustomModelProviderFromConfig(): void {
     return;
   }
   try {
-    // Lazy import to avoid circular deps at module load time
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { getGlobalConfig } =
+    const { getGlobalConfig, saveGlobalConfig } =
       require("../utils/config.js") as typeof import("../../utils/config.js");
-    const cfg = getGlobalConfig().customModelProvider;
+
+    const globalConfig = getGlobalConfig();
+
+    // Skip onboarding and API key approval dialogs — cr7 uses its own /model command
+    if (!globalConfig.hasCompletedOnboarding || !globalConfig.theme) {
+      saveGlobalConfig((c) => ({
+        ...c,
+        hasCompletedOnboarding: true,
+        theme: c.theme ?? "dark",
+      }));
+    }
+
+    const cfg = globalConfig.customModelProvider;
     if (!cfg) {
-      // No provider configured yet — set a placeholder so cr7 can start.
-      // The user should run /model to configure a real provider.
+      // No provider configured yet — use OpenAI-compatible mode with placeholder.
+      // User should run /model to configure a real provider and API key.
       process.env.CLAUDE_CODE_USE_OPENAI = "1";
-      process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY ?? "not-configured";
       process.env.OPENAI_BASE_URL =
         process.env.OPENAI_BASE_URL ?? "https://dashscope.aliyuncs.com/compatible-mode/v1";
       process.env.CLAUDE_CODE_MODEL = process.env.CLAUDE_CODE_MODEL ?? "qwen-max";
+      // Do NOT set OPENAI_API_KEY here — avoid triggering ApproveApiKey dialog
       return;
     }
     if (cfg.provider === "ollama") {
@@ -372,6 +383,7 @@ export function applyCustomModelProviderFromConfig(): void {
     } else {
       process.env.CLAUDE_CODE_USE_OPENAI = "1";
     }
+    // Do NOT set ANTHROPIC_API_KEY — only use OPENAI_API_KEY to avoid dialogs
     if (cfg.apiKey) process.env.OPENAI_API_KEY = cfg.apiKey;
     process.env.OPENAI_BASE_URL = cfg.baseURL;
     process.env.CLAUDE_CODE_MODEL = cfg.model;
