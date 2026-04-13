@@ -148,3 +148,57 @@ components/  ── React + Ink 渲染终端 UI
 - 新增 `applyConfigAfterInit()` 在 `init()`（即 `enableConfigs()` 之后）再次执行 theme/provider 修复
 
 **结论**：Bun bundle 内的模块**不能**用 CommonJS `require()` 引用，必须用静态 import。
+
+---
+
+### 错误的 Build Entrypoint：`main()` 从未被调用
+
+**现象**：`cr7` 静默退出（exit 0），无任何输出，even with TTY。
+
+**根因**：`build.ts` 使用 `src/main.tsx` 作为 entrypoint，但该文件只 `export function main()`，从不调用它。
+正确的 entrypoint 是 `src/entrypoints/cli.tsx`，该文件末尾有 `void main()`。
+
+**修复**：`build.ts` 改为 `entrypoints: [resolve(ROOT, "src/entrypoints/cli.tsx")]`
+
+---
+
+### `MACRO.*` 常量在 bundle 中未定义
+
+**现象**：`ReferenceError: MACRO is not defined` — REPL 启动时崩溃。
+
+**根因**：`MACRO.VERSION`、`MACRO.BUILD_TIME` 等是 Anthropic 内部构建时注入的常量，Bun bundler 默认不处理。
+
+**修复**：在 `build.ts` 的 `Bun.build()` 配置中加入 `define` 字段手动替换：
+
+```ts
+define: {
+  "MACRO.VERSION": JSON.stringify("2.1.88"),
+  "MACRO.BUILD_TIME": JSON.stringify(new Date().toISOString()),
+  // ...
+}
+```
+
+---
+
+### Commander 13.x 不接受多字符 short flag（`-d2e`）
+
+**现象**：`error: option creation failed due to '-d2e' in option flags '-d2e, --debug-to-stderr'`
+
+**根因**：原 Anthropic 代码用 `-d2e` 作为 `--debug-to-stderr` 的 short alias；Commander 13.x 要求 short flag 只能是单字符（`-x`）。
+
+**修复**：`src/main.tsx` 中改为 `new Option("--debug-to-stderr", ...)`，去掉 short alias。
+
+---
+
+### `@anthropic-ai/sandbox-runtime` stub 缺少静态方法
+
+**现象**：REPL 渲染时报 `SandboxManager.isSupportedPlatform is not a function`。
+
+**根因**：`node_modules/@anthropic-ai/sandbox-runtime/index.js`（我们自制的 stub）只定义了实例方法，缺少 `static isSupportedPlatform()` 静态方法。`sandbox-adapter.ts` 在 REPL 初始化时调用 `BaseSandboxManager.isSupportedPlatform()`。
+
+**修复**：在 stub 中加入 `static isSupportedPlatform() { return false }`。需同时更新两处：
+
+- `src/stubs/@anthropic-ai/sandbox-runtime/index.ts`（build alias 来源）
+- `node_modules/@anthropic-ai/sandbox-runtime/index.js`（bundler 实际解析的来源，因为 node_modules 优先于 alias）
+
+**结论**：当 `node_modules` 中存在与 alias 同名的包时，Bun bundler 优先用 node_modules 版本，alias 无效。需同步维护两处 stub。
