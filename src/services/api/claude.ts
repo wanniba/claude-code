@@ -1677,7 +1677,7 @@ async function* queryModel(
         : undefined;
 
       queryCheckpoint("query_api_request_sent");
-      const openaiStream = await openai.chat.completions.stream({
+      const openaiStream = await openai.beta.chat.completions.stream({
         model: process.env.CLAUDE_CODE_MODEL ?? options.model,
         messages: openaiMessages,
         ...(openaiTools?.length && { tools: openaiTools }),
