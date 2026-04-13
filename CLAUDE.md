@@ -14,6 +14,9 @@
 | [doc/bridge.md](doc/bridge.md)             | 桥接与远程模式：Bridge 协议、Coordinator 多 Agent、KAIROS 助手     |
 | [doc/ui.md](doc/ui.md)                     | 终端 UI：React + Ink 组件、Hooks、Vim 模式、主题、语音输入         |
 
+| [guide/deploy.md](guide/deploy.md) | 一键打包部署脚本说明（`bash scripts/deploy.sh`） |
+| [guide/usage.md](guide/usage.md) | 启动方式、多 provider 配置、斜杠命令 |
+
 ## Skills
 
 源文件：`~/obsidian/skills/spq/`（相对 home，跨机器一致），通过 `.claude/skills/` 符号链接加载。
