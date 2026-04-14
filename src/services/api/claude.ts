@@ -1699,27 +1699,19 @@ async function* queryModel(
       const coreApiTools = allTools.filter(
         (t) => "name" in t && CORE_TOOL_NAMES.has((t as { name: string }).name),
       );
-      logForDebugging(
-        `[OpenAI path] allTools=${allTools.length} core=${coreApiTools.length} names=${coreApiTools.map((t) => (t as { name: string }).name).join(",")}`,
-      );
       const compatTools = coreApiTools.length
         ? toOpenAITools(coreApiTools as Parameters<typeof toOpenAITools>[0], true)
         : undefined;
-      logForDebugging(`[OpenAI path] compatTools=${compatTools?.length ?? 0}`);
 
       // Inject a short Chinese reminder right before the last user message so
       // it's fresh in context. GLM ignores tool-use instructions buried in long
       // system prompts; a nearby system message is much more effective.
       if (compatTools?.length) {
         const toolNames = compatTools.map((t) => t.function.name).join("、");
-        const injection = `你有以下工具可用：${toolNames}。当用户要求执行操作时，请立即调用对应工具，不要用文字描述。`;
         compatMessages.push({
           role: "system",
-          content: injection,
+          content: `你有以下工具可用：${toolNames}。当用户要求执行操作时，请立即调用对应工具，不要用文字描述。`,
         } as (typeof compatMessages)[0]);
-        logForDebugging(
-          `[OpenAI path] msgs=${compatMessages.length} sysPrompt(50)=${systemPrompt.slice(0, 50)} injection=${injection.slice(0, 40)}`,
-        );
       }
       const compatModel = process.env.CLAUDE_CODE_MODEL ?? options.model;
 
