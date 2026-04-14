@@ -6,30 +6,26 @@ cr7 是基于 Claude Code v2.1.88 源码改造的 CLI 工具，**不依赖 Anthr
 
 ## 环境要求
 
-| 依赖                  | 版本    | 说明           |
-| --------------------- | ------- | -------------- |
-| [Bun](https://bun.sh) | ≥ 1.3.0 | 运行时（必须） |
-| macOS / Linux         | —       | Windows 未测试 |
+| 依赖          | 说明           |
+| ------------- | -------------- |
+| macOS / Linux | Windows 未测试 |
+| npm           | 全局安装用     |
+
+Bun 会由安装脚本自动安装，无需手动准备。
 
 ---
 
 ## 安装
 
-### 从源码构建
+### 一键安装（推荐）
 
 ```bash
 git clone https://github.com/wanniba/claude-code.git
 cd claude-code
-
-# 安装依赖
-AUTHORIZED=1 bun install
-
-# 构建
-bun run build.ts
-
-# 全局安装（之后用 cr7 命令启动）
-npm install -g .
+bash scripts/deploy.sh
 ```
+
+脚本会自动完成：安装 Bun → 安装依赖 → 注册 stub → 构建 → 全局安装。
 
 ### 直接运行构建产物
 
