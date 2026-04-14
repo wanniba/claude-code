@@ -1687,7 +1687,11 @@ async function* queryModel(
       const compatStream = await client.beta.chat.completions.stream({
         model: compatModel,
         messages: compatMessages,
-        ...(compatTools?.length && { tools: compatTools }),
+        ...(compatTools?.length && {
+          tools: compatTools,
+          // auto: let the model decide; when tools are available, strongly prefer using them
+          tool_choice: "auto",
+        }),
         stream: true,
       });
       queryCheckpoint("query_response_headers_received");

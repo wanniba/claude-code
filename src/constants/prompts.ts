@@ -274,6 +274,11 @@ function getUsingYourToolsSection(enabledTools: Set<string>): string {
   ];
 
   const items = [
+    // cr7: OpenAI-compat models (GLM, Qwen, etc.) tend to describe actions instead of
+    // calling tools. Add an upfront directive to always act via tools immediately.
+    getAPIProvider() !== "firstParty"
+      ? `IMPORTANT: When the user asks you to do something (run a command, read a file, edit code, commit git, etc.), call the appropriate tool IMMEDIATELY. Do NOT describe what you are about to do in text — just call the tool. Only use text when you have a direct answer that requires no tool.`
+      : null,
     `Do NOT use the ${BASH_TOOL_NAME} to run commands when a relevant dedicated tool is provided. Using dedicated tools allows the user to better understand and review your work. This is CRITICAL to assisting the user:`,
     providedToolSubitems,
     taskToolName
