@@ -1664,10 +1664,22 @@ async function* queryModel(
       const client = getOpenAIClient();
       queryCheckpoint("query_client_creation_end");
 
-      const systemPrompt =
+      // cr7: use a SHORT system prompt for OpenAI-compat providers.
+      // The full cr7 system prompt is ~2000+ tokens. GLM/Qwen ignore
+      // tool-use instructions buried that deep and fall back to text-only.
+      // We keep: identity line + CWD/date env info + Chinese tool-use rule.
+      const fullSystemPrompt =
         typeof options.systemPrompt === "string"
           ? options.systemPrompt
           : options.systemPrompt?.map((p: { text: string }) => p.text).join("\n");
+      // Extract CWD line from full prompt (first "Working directory" mention)
+      const cwdLine =
+        fullSystemPrompt?.match(/Working directory: [^\n]*/)?.[0] ??
+        `Working directory: ${process.cwd()}`;
+      const today = new Date().toISOString().slice(0, 10);
+      const systemPrompt =
+        `You are an AI coding assistant (cr7). ${cwdLine}. Today: ${today}.\n` +
+        `【工具规则】当用户要求执行操作，必须立即调用对应工具，禁止只用文字描述。`;
 
       // Convert REPL messages to API format (role/content at top level).
       // messagesForAPI has {type, message:{role,content}} structure;
@@ -1677,14 +1689,38 @@ async function* queryModel(
         apiMessages as Parameters<typeof toOpenAIMessages>[0],
         systemPrompt,
       );
-      // cr7: GLM and other OpenAI-compat models fall back to XML tool-call format
-      // when given too many tool definitions. Filter to the ~6 essential tools so
-      // the model reliably uses the standard JSON format.
+      // cr7: OpenAI-compat models (GLM, Qwen…) stop calling tools when given
+      // too many or too-complex tool definitions. Use 6 core tools with
+      // simplified schemas. XML fallback is handled in toAnthropicStream.
+      // Use allTools (BetaToolUnion[] with input_schema) not tools (cr7 Tool[]).
+      // cr7 Tool objects have inputSchema (Zod) and no input_schema field,
+      // so toOpenAITools would skip them all.
       const CORE_TOOL_NAMES = new Set(["Bash", "Read", "Write", "Edit", "Glob", "Grep"]);
-      const filteredTools = tools?.filter((t) => CORE_TOOL_NAMES.has(t.name)) ?? [];
-      const compatTools = filteredTools.length
-        ? toOpenAITools(filteredTools as Parameters<typeof toOpenAITools>[0])
+      const coreApiTools = allTools.filter(
+        (t) => "name" in t && CORE_TOOL_NAMES.has((t as { name: string }).name),
+      );
+      logForDebugging(
+        `[OpenAI path] allTools=${allTools.length} core=${coreApiTools.length} names=${coreApiTools.map((t) => (t as { name: string }).name).join(",")}`,
+      );
+      const compatTools = coreApiTools.length
+        ? toOpenAITools(coreApiTools as Parameters<typeof toOpenAITools>[0], true)
         : undefined;
+      logForDebugging(`[OpenAI path] compatTools=${compatTools?.length ?? 0}`);
+
+      // Inject a short Chinese reminder right before the last user message so
+      // it's fresh in context. GLM ignores tool-use instructions buried in long
+      // system prompts; a nearby system message is much more effective.
+      if (compatTools?.length) {
+        const toolNames = compatTools.map((t) => t.function.name).join("、");
+        const injection = `你有以下工具可用：${toolNames}。当用户要求执行操作时，请立即调用对应工具，不要用文字描述。`;
+        compatMessages.push({
+          role: "system",
+          content: injection,
+        } as (typeof compatMessages)[0]);
+        logForDebugging(
+          `[OpenAI path] msgs=${compatMessages.length} sysPrompt(50)=${systemPrompt.slice(0, 50)} injection=${injection.slice(0, 40)}`,
+        );
+      }
       const compatModel = process.env.CLAUDE_CODE_MODEL ?? options.model;
 
       queryCheckpoint("query_api_request_sent");

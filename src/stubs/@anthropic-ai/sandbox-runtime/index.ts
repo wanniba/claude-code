@@ -18,6 +18,9 @@ export class SandboxManager {
   static isSupportedPlatform() {
     return false;
   }
+  static annotateStderrWithSandboxFailures(_command: string, stderr: string) {
+    return stderr;
+  }
   async start() {}
   async stop() {}
   isEnabled() {

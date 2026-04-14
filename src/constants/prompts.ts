@@ -147,9 +147,13 @@ export function prependBullets(items: Array<string | string[]>): string[] {
 }
 
 function getSimpleIntroSection(outputStyleConfig: OutputStyleConfig | null): string {
+  const toolUseReminder =
+    getAPIProvider() !== "firstParty"
+      ? `\n\n【工具使用规则】当用户让你执行操作（如运行命令、读写文件、提交代码等），必须立即调用对应工具完成，禁止只用文字描述将要做什么。`
+      : "";
   // eslint-disable-next-line custom-rules/prompt-spacing
   return `
-You are an interactive agent that helps users ${outputStyleConfig !== null ? 'according to your "Output Style" below, which describes how you should respond to user queries.' : "with software engineering tasks."} Use the instructions below and the tools available to you to assist the user.
+You are an interactive agent that helps users ${outputStyleConfig !== null ? 'according to your "Output Style" below, which describes how you should respond to user queries.' : "with software engineering tasks."} Use the instructions below and the tools available to you to assist the user.${toolUseReminder}
 
 ${CYBER_RISK_INSTRUCTION}
 IMPORTANT: You must NEVER generate or guess URLs for the user unless you are confident that the URLs are for helping the user with programming. You may use URLs provided by the user in their messages or local files.`;
