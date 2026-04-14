@@ -1689,18 +1689,14 @@ async function* queryModel(
         apiMessages as Parameters<typeof toOpenAIMessages>[0],
         systemPrompt,
       );
-      // cr7: OpenAI-compat models (GLM, Qwen…) stop calling tools when given
-      // too many or too-complex tool definitions. Use 6 core tools with
-      // simplified schemas. XML fallback is handled in toAnthropicStream.
-      // Use allTools (BetaToolUnion[] with input_schema) not tools (cr7 Tool[]).
-      // cr7 Tool objects have inputSchema (Zod) and no input_schema field,
-      // so toOpenAITools would skip them all.
-      const CORE_TOOL_NAMES = new Set(["Bash", "Read", "Write", "Edit", "Glob", "Grep"]);
-      const coreApiTools = allTools.filter(
-        (t) => "name" in t && CORE_TOOL_NAMES.has((t as { name: string }).name),
-      );
-      const compatTools = coreApiTools.length
-        ? toOpenAITools(coreApiTools as Parameters<typeof toOpenAITools>[0], true)
+      // Pass ALL tools with simplified=true: descriptions are truncated to the
+      // first sentence (~10 tokens) instead of full paragraphs (~200 tokens).
+      // 40 tools × 200 tokens = 8000 token tool-doc overhead that crowds out
+      // context and makes GLM ignore tool-calling instructions.
+      // First-sentence descriptions still tell the model WHEN to use each tool.
+      // Use allTools (BetaToolUnion[] with input_schema), not tools (cr7 Tool[]).
+      const compatTools = allTools.length
+        ? toOpenAITools(allTools as Parameters<typeof toOpenAITools>[0], true)
         : undefined;
 
       // Inject a short Chinese reminder right before the last user message so

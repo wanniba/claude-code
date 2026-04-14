@@ -47,7 +47,18 @@ export function toOpenAITools(tools: BetaToolUnion[], simplified = false): ChatC
       type: "function",
       function: {
         name: t.name,
-        ...(t.description && { description: t.description }),
+        // simplified=true: keep only the first sentence of the description.
+        // Full descriptions cost 200-500 tokens per tool; with 40+ tools that's
+        // 8000-20000 tokens of tool docs crowding out context. A one-liner is
+        // enough for the model to know when to use each tool.
+        ...(t.description && {
+          description: simplified
+            ? t.description
+                .split(/[.。\n]/)[0]!
+                .trim()
+                .slice(0, 80)
+            : t.description,
+        }),
         parameters: simplified ? simplifySchema(schema) : schema,
       },
     });
