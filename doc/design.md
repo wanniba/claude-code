@@ -232,3 +232,36 @@ define: {
 - `allTools`（BetaToolUnion[]）代替 `tools`（cr7 Tool[]）：cr7 Tool 有 `inputSchema`（Zod），无 `input_schema`（JSON），toOpenAITools 会跳过全部
 - 短系统提示（~50 token）+ 末尾注入中文工具提醒
 - XML tool-call 解析器（GLM 极少数情况仍会用 XML 格式）
+
+---
+
+### ReadToolDocs：工具文档按需加载（Skill 思路）
+
+**背景**：将工具描述截断为首句后，GLM 知道工具存在但对复杂工具（如 ExitPlanMode、AskUserQuestion）不确定具体用法。
+
+**方案**：新增 `ReadToolDocsTool`，让 GLM 在使用陌生工具前先"查手册"。
+
+**流程**（类比 skill）：
+```
+首次请求：GLM 看到所有工具的首句描述
+          ↓ 需要了解某工具详情
+          ↓ 调用 ReadToolDocs("ExitPlanMode")
+          ↓ cr7 本地返回完整文档（无 API 调用）
+          ↓ GLM 读完 → 正确调用真实工具
+```
+
+**实现**：
+- `src/tools/ReadToolDocsTool/ReadToolDocsTool.ts` — 新工具，`isEnabled()` 只对 `openai/ollama` provider 返回 true
+- `call()` 方法接收 `tool_name`，调用对应工具的 `prompt()` + 序列化 `inputSchema`，返回完整文档字符串
+- 注册于 `getAllBaseTools()`，会自动出现在 `allTools` 中
+
+**系统提示注入**（`claude.ts`）：
+```
+如需了解某工具完整用法，先调用 ReadToolDocs("工具名") 获取详细文档，再调用该工具。
+```
+
+**优点**：
+- 首次 token 开销：40 工具 × 10 token = 400 token（极低）
+- 按需加载：只有 GLM 不确定时才读完整文档
+- 不影响 Anthropic 路径（isEnabled 返回 false）
+- 与 skill 机制思路完全一致
