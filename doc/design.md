@@ -202,3 +202,33 @@ define: {
 - `node_modules/@anthropic-ai/sandbox-runtime/index.js`（bundler 实际解析的来源，因为 node_modules 优先于 alias）
 
 **结论**：当 `node_modules` 中存在与 alias 同名的包时，Bun bundler 优先用 node_modules 版本，alias 无效。需同步维护两处 stub。
+
+---
+
+### OpenAI-compat 工具调用失效：tools 文档 token 过多
+
+**现象**：GLM/Qwen 等模型对「git 提交代码」等操作只输出描述文字，不调用工具。
+
+**根因**：Anthropic 工具的 description 字段完整段落平均 200-500 token。40+ 工具传给模型 = 8000-20000 token 仅工具文档，占满上下文，工具调用指令被淹没。
+
+**调查过程**：
+1. 直接 curl 测试 GLM（2 工具、简短 schema）→ 工具调用正常
+2. cr7 -p 测试（40+ 工具、完整 schema）→ 只输出文字
+3. 添加 debug 日志发现 `compatTools=0`（`toOpenAITools` 过滤了 cr7 Tool 对象）
+4. 修正为 `allTools`（BetaToolUnion[]）后 `compatTools=6`
+5. 6 工具可以调用，但降低了能力（缺少 WebSearch、TaskCreate 等）
+
+**最终方案**：`simplified=true` 截断描述为首句（≤80 字符）
+
+| 方案 | 工具数 | 每工具 token | 总 overhead |
+|------|--------|------------|-------------|
+| 全描述 | 40+ | ~250 | ~10000 ❌ |
+| 6 工具限制 | 6 | ~250 | ~1500（但功能受限） |
+| 首句描述 | 40+ | ~10 | ~400 ✅ |
+
+模型仍能看到每个工具的用途（首句说明），但不再被冗余文档占满上下文。
+
+**额外修复**：
+- `allTools`（BetaToolUnion[]）代替 `tools`（cr7 Tool[]）：cr7 Tool 有 `inputSchema`（Zod），无 `input_schema`（JSON），toOpenAITools 会跳过全部
+- 短系统提示（~50 token）+ 末尾注入中文工具提醒
+- XML tool-call 解析器（GLM 极少数情况仍会用 XML 格式）
