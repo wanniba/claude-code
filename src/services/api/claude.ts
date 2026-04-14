@@ -1703,10 +1703,14 @@ async function* queryModel(
       // it's fresh in context. GLM ignores tool-use instructions buried in long
       // system prompts; a nearby system message is much more effective.
       if (compatTools?.length) {
+        const hasReadToolDocs = compatTools.some((t) => t.function.name === "ReadToolDocs");
         const toolNames = compatTools.map((t) => t.function.name).join("、");
+        const docsHint = hasReadToolDocs
+          ? `每个工具只有简短说明；如需了解某工具的完整用法，先调用 ReadToolDocs("工具名") 获取详细文档，再调用该工具。`
+          : `当用户要求执行操作时，请立即调用对应工具，不要用文字描述。`;
         compatMessages.push({
           role: "system",
-          content: `你有以下工具可用：${toolNames}。当用户要求执行操作时，请立即调用对应工具，不要用文字描述。`,
+          content: `你有以下工具可用：${toolNames}。${docsHint}`,
         } as (typeof compatMessages)[0]);
       }
       const compatModel = process.env.CLAUDE_CODE_MODEL ?? options.model;
