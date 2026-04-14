@@ -1677,8 +1677,13 @@ async function* queryModel(
         apiMessages as Parameters<typeof toOpenAIMessages>[0],
         systemPrompt,
       );
-      const compatTools = tools?.length
-        ? toOpenAITools(tools as Parameters<typeof toOpenAITools>[0])
+      // cr7: GLM and other OpenAI-compat models fall back to XML tool-call format
+      // when given too many tool definitions. Filter to the ~6 essential tools so
+      // the model reliably uses the standard JSON format.
+      const CORE_TOOL_NAMES = new Set(["Bash", "Read", "Write", "Edit", "Glob", "Grep"]);
+      const filteredTools = tools?.filter((t) => CORE_TOOL_NAMES.has(t.name)) ?? [];
+      const compatTools = filteredTools.length
+        ? toOpenAITools(filteredTools as Parameters<typeof toOpenAITools>[0])
         : undefined;
       const compatModel = process.env.CLAUDE_CODE_MODEL ?? options.model;
 
