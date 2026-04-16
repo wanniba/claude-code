@@ -4,15 +4,17 @@
 
 ## 文档索引
 
-| 文件                                       | 职责                                                               |
-| ------------------------------------------ | ------------------------------------------------------------------ |
-| [doc/design.md](doc/design.md)             | 整体架构总览：数据流、模块地图、启动流程、运行模式、功能开关       |
-| [doc/query-engine.md](doc/query-engine.md) | 核心对话循环引擎：QueryEngine 类、对话生命周期、压缩机制、权限模式 |
-| [doc/tools.md](doc/tools.md)               | 工具系统：40+ 工具分类详解、任务系统、工具注册机制                 |
-| [doc/commands.md](doc/commands.md)         | 命令系统：103+ 斜杠命令列表、命令 vs 工具对比                      |
-| [doc/services.md](doc/services.md)         | 服务层：Claude API、MCP、OAuth、对话压缩、分析等服务               |
-| [doc/bridge.md](doc/bridge.md)             | 桥接与远程模式：Bridge 协议、Coordinator 多 Agent、KAIROS 助手     |
-| [doc/ui.md](doc/ui.md)                     | 终端 UI：React + Ink 组件、Hooks、Vim 模式、主题、语音输入         |
+| 文件                                                       | 职责                                                               |
+| ---------------------------------------------------------- | ------------------------------------------------------------------ |
+| [doc/design.md](doc/design.md)                             | 整体架构总览：数据流、模块地图、启动流程、运行模式、功能开关       |
+| [doc/query-engine.md](doc/query-engine.md)                 | 核心对话循环引擎：QueryEngine 类、对话生命周期、压缩机制、权限模式 |
+| [doc/tools.md](doc/tools.md)                               | 工具系统：40+ 工具分类详解、任务系统、工具注册机制                 |
+| [doc/commands.md](doc/commands.md)                         | 命令系统：103+ 斜杠命令列表、命令 vs 工具对比                      |
+| [doc/services.md](doc/services.md)                         | 服务层：Claude API、MCP、OAuth、对话压缩、分析等服务               |
+| [doc/bridge.md](doc/bridge.md)                             | 桥接与远程模式：Bridge 协议、Coordinator 多 Agent、KAIROS 助手     |
+| [doc/ui.md](doc/ui.md)                                     | 终端 UI：React + Ink 组件、Hooks、Vim 模式、主题、语音输入         |
+| [doc/cr7-capability-audit.md](doc/cr7-capability-audit.md) | cr7 能力评测：可用 vs 静默死亡全表、bun-bundle stub 机制、解锁路径 |
+| [doc/cr7-unlock.md](doc/cr7-unlock.md)                     | cr7 静默死亡功能解锁计划：本轮启用范围、放弃理由、进度记录         |
 
 | [guide/deploy.md](guide/deploy.md) | 一键打包部署脚本说明（`bash scripts/deploy.sh`） |
 | [guide/usage.md](guide/usage.md) | 启动方式、多 provider 配置、斜杠命令 |

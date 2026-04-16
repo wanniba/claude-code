@@ -2,7 +2,8 @@
   "name": "cr7-cli",
   "version": "2.1.88",
   "bin": {
-    "cr7": "cli.js"
+    "kakashi": "cli.js",
+    "Kakashi": "cli.js"
   },
   "engines": {
     "node": ">=18.0.0"
